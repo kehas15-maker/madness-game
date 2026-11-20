@@ -110,12 +110,30 @@ const GAME_BOSSES = [
 const EQUIPMENT_SETS = {
     "patient_set": {
         name: "Набор пациента",
-        items: ["patient_pants", "patient_jacket", "patient_gloves", "patient_boots", "patient_mask", "patient_hat", "patient_weapon"],
+        items: {
+            "patient_pants": { slot: "pants", name: "Штаны пациента" },
+            "patient_jacket": { slot: "jacket", name: "Куртка пациента" },
+            "patient_gloves": { slot: "gloves", name: "Перчатки пациента" },
+            "patient_boots": { slot: "boots", name: "Обувь пациента" },
+            "patient_mask": { slot: "mask", name: "Маска пациента" },
+            "patient_hat": { slot: "hat", name: "Шляпа пациента" },
+            "patient_weapon": { slot: "weapon", name: "Кулаки" }
+        },
         stat_bonus: { madness: 1, aggression: 1, fury: 1 }
     },
     "madman_set": {
         name: "Безумец",
-        items: ["madman_pants", "madman_jacket", "madman_gloves", "madman_boots", "madman_mask", "madman_hat", "madman_amulet", "madman_weapon", "madman_pet"],
+        items: {
+            "madman_pants": { slot: "pants", name: "Штаны безумца" },
+            "madman_jacket": { slot: "jacket", name: "Куртка безумца" },
+            "madman_gloves": { slot: "gloves", name: "Перчатки безумца" },
+            "madman_boots": { slot: "boots", name: "Обувь безумца" },
+            "madman_mask": { slot: "mask", name: "Маска безумца" },
+            "madman_hat": { slot: "hat", name: "Шляпа безумца" },
+            "madman_amulet": { slot: "amulet", name: "Амулет безумца" },
+            "madman_weapon": { slot: "weapon", name: "Оружие безумца" },
+            "madman_pet": { slot: "pet", name: "Питомец безумца" }
+        },
         stat_bonus: { madness: 1, aggression: 1, fury: 1 }
     }
 };
@@ -157,8 +175,8 @@ function recalcStats() {
     Object.values(g_player.equipment).forEach(itemId => {
         if (!itemId) return;
         // Ищем, к какому сету относится предмет
-        for (const [setName, setData] of Object.entries(EQUIPMENT_SETS)) {
-            if (setData.items.includes(itemId)) {
+       for (const [setName, setData] of Object.entries(EQUIPMENT_SETS)) {
+                if (setData.items[itemId]) {
                 base.madness += setData.stat_bonus.madness;
                 base.aggression += setData.stat_bonus.aggression;
                 base.fury += setData.stat_bonus.fury;
@@ -231,7 +249,11 @@ function renderGame() {
     let eqHtml = `<div class="equipment"><h3 style="color: #f39c12; margin-top: 0;">🛡️ Экипировка</h3>`;
     Object.entries(g_player.equipment).forEach(([slot, item]) => {
         if (item) {
-            eqHtml += `<div class="eq-slot"><span>${slot}:</span><span>${item}</span></div>`;
+           let itemName = item;
+for (const set of Object.values(EQUIPMENT_SETS)) {
+    if (set.items[item]) { itemName = set.items[item].name; break; }
+}
+eqHtml += `<div class="eq-slot"><span>${slot}:</span><span>${itemName}</span></div>`;
         }
     });
     eqHtml += `</div>`;
