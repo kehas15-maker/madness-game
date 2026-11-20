@@ -258,10 +258,9 @@ function renderGame() {
                 <div class="battle-hp-bar"><div class="battle-hp-fill" style="width: ${hpPercent}%; background: ${hpPercent < 30 ? '#e74c3c' : '#2ecc71'};"></div></div>
                 <p class="small">HP: ${Math.max(0, g_player.bossCurrentHp)} / ${currentBossData.hp}</p>
                 
-              <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                <button class="btn" onclick="renderGame()" style="background: #e74c3c;">⚔️ В бой</button>
-                <button class="btn" onclick="showBusinesses()" style="background: #2ecc71;">🏭 Бизнесы</button>
-                <button class="btn" onclick="showDice()" style="background: #9b59b6;">🎲 Кости</button>
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <button class="btn" onclick="attackBoss()" style="flex: 1;">⚔️ Атаковать</button>
+                    <button class="btn btn-secondary" onclick="resetBoss()" style="flex: 1;">🔄 Сброс</button>
                 </div>
                 <div class="battle-log" id="battleLog">${g_player.battleLog.join('<br>')}</div>
             </div>
@@ -295,9 +294,10 @@ function renderGame() {
     eqHtml += `</div>`;
 
     container.innerHTML = `
-        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
             <button class="btn" onclick="renderGame()" style="background: #e74c3c;">⚔️ В бой</button>
             <button class="btn" onclick="showBusinesses()" style="background: #2ecc71;">🏭 Бизнесы</button>
+            <button class="btn" onclick="showDice()" style="background: #9b59b6;">🎲 Кости</button>
         </div>
 
         <div class="game-stats">
