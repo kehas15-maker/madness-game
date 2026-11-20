@@ -31,7 +31,12 @@
         .btn:disabled { background: #555; cursor: not-allowed; }
 
         .inventory { background: rgba(42, 42, 42, 0.8); padding: 15px; border-radius: 8px; margin-top: 15px; }
-        .inv-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .inv-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; cursor: pointer; }
+        .inv-item:hover { background: #333; }
+        
+        .equipment { background: rgba(42, 42, 42, 0.8); padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .eq-slot { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; }
+        .eq-slot span:last-child { color: #2ecc71; }
     </style>
 </head>
 <body>
@@ -43,7 +48,7 @@
 </div>
 
 <script>
-// --- БАЗА БОССОВ (HP, Урон, Дроп) ---
+// --- БАЗА БОССОВ ---
 const GAME_BOSSES = [
     { name: "Генри Литен", floor: "A-1", hp: 600, dmg: [5, 20], xp: 25, gold: 25, pills: 0, drop: ["Ошейник"] },
     { name: "Амалия Банши", floor: "A-1", hp: 300, dmg: [10, 20], xp: 25, gold: 0, pills: 5, drop: ["Бинты"] },
@@ -101,20 +106,27 @@ const GAME_BOSSES = [
     { name: "Ультиматум", floor: "I-3", hp: 6000000, dmg: [1430, 4280], xp: 1500, gold: 1640, pills: 0, drop: ["Останок"] }
 ];
 
-// --- РАСХОДНИКИ ---
-const CONSUMABLES = [
-    { id: "medicine", name: "Лекарство", price: 2000, currency: "gold", heal: 0.10 },
-    { id: "pharmacy", name: "Аптека", price: 1000, currency: "pills", heal: 0.50 },
-    { id: "scream", name: "Крик", price: 500, currency: "pills" }
-];
+// --- СЕТЫ ЭКИПИРОВКИ ---
+const EQUIPMENT_SETS = {
+    "patient_set": {
+        name: "Набор пациента",
+        items: ["patient_pants", "patient_jacket", "patient_gloves", "patient_boots", "patient_mask", "patient_hat", "patient_weapon"],
+        stat_bonus: { madness: 1, aggression: 1, fury: 1 }
+    },
+    "madman_set": {
+        name: "Безумец",
+        items: ["madman_pants", "madman_jacket", "madman_gloves", "madman_boots", "madman_mask", "madman_hat", "madman_amulet", "madman_weapon", "madman_pet"],
+        stat_bonus: { madness: 1, aggression: 1, fury: 1 }
+    }
+};
 
 // --- СОСТОЯНИЕ ИГРОКА ---
-let g_player = JSON.parse(localStorage.getItem('madness_player_v4')) || {
+let g_player = JSON.parse(localStorage.getItem('madness_player_v5')) || {
     level: 1,
     xp: 0,
     max_hp: 190,
     hp: 190,
-    base_dmg: 40, // 10 + (30 * 3) = 100, но для теста сделаем 40
+    base_dmg: 40,
     energy: 100,
     max_energy: 100,
     gold: 50000,
@@ -125,31 +137,56 @@ let g_player = JSON.parse(localStorage.getItem('madness_player_v4')) || {
     currentBoss: null,
     bossCurrentHp: 0,
     battleLog: [],
-    inventory: {} // Инвентарь для итемов
+    inventory: {},
+    equipment: {
+        weapon: "patient_weapon", pants: "patient_pants", jacket: "patient_jacket",
+        gloves: "patient_gloves", boots: "patient_boots", mask: "patient_mask", hat: "patient_hat"
+    } // Стартовый сет
 };
 
 function g_savePlayer() {
-    localStorage.setItem('madness_player_v4', JSON.stringify(g_player));
+    localStorage.setItem('madness_player_v5', JSON.stringify(g_player));
 }
 
+// --- ПЕРЕСЧЕТ СТАТОВ С УЧЕТОМ ЭКИПИРОВКИ ---
+function recalcStats() {
+    // Базовые статы
+    let base = { madness: 30, aggression: 30, fury: 30 };
+    
+    // Бонусы от экипировки
+    Object.values(g_player.equipment).forEach(itemId => {
+        if (!itemId) return;
+        // Ищем, к какому сету относится предмет
+        for (const [setName, setData] of Object.entries(EQUIPMENT_SETS)) {
+            if (setData.items.includes(itemId)) {
+                base.madness += setData.stat_bonus.madness;
+                base.aggression += setData.stat_bonus.aggression;
+                base.fury += setData.stat_bonus.fury;
+                break;
+            }
+        }
+    });
+
+    g_player.stats = base;
+    g_player.max_hp = 100 + (g_player.stats.madness * 3);
+    g_player.base_dmg = 10 + (g_player.stats.aggression * 3);
+    
+    if (g_player.hp > g_player.max_hp) g_player.hp = g_player.max_hp;
+}
+
+// --- РЕНДЕР ---
 function renderGame() {
     const container = document.getElementById("gameContainer");
     if (!container) return;
 
-    // Пересчет статов
-    g_player.max_hp = 100 + (g_player.stats.madness * 3);
-    if (g_player.hp > g_player.max_hp) g_player.hp = g_player.max_hp;
-    g_player.base_dmg = 10 + (g_player.stats.aggression * 3);
+    recalcStats();
 
-    // Собираем уникальные этажи
     const floors = [...new Set(GAME_BOSSES.map(b => b.floor.split('-')[0]))].sort();
-    
     let floorHtml = "";
     floors.forEach(f => {
         floorHtml += `<button class="floor-btn ${g_player.currentFloor === f ? 'active' : ''}" onclick="selectFloor('${f}')">Этаж ${f}</button>`;
     });
 
-    // Боссы выбранного этажа
     const floorBosses = GAME_BOSSES.filter(b => b.floor.startsWith(g_player.currentFloor));
     let bossHtml = "";
     floorBosses.forEach(b => {
@@ -185,18 +222,27 @@ function renderGame() {
     if (items.length > 0) {
         invHtml = `<div class="inventory"><h3 style="color: #f39c12; margin-top: 0;">🎒 Инвентарь</h3>`;
         items.forEach(([item, count]) => {
-            invHtml += `<div class="inv-item"><span>${item}</span><span>x${count}</span></div>`;
+            invHtml += `<div class="inv-item" onclick="tryEquip('${item}')"><span>${item}</span><span>x${count}</span></div>`;
         });
-        invHtml += `</div>`;
+        invHtml += `<p class="small" style="text-align:center; margin-top:10px;">Нажми на предмет, чтобы надеть</p></div>`;
     }
+
+    // Экипировка
+    let eqHtml = `<div class="equipment"><h3 style="color: #f39c12; margin-top: 0;">🛡️ Экипировка</h3>`;
+    Object.entries(g_player.equipment).forEach(([slot, item]) => {
+        if (item) {
+            eqHtml += `<div class="eq-slot"><span>${slot}:</span><span>${item}</span></div>`;
+        }
+    });
+    eqHtml += `</div>`;
 
     container.innerHTML = `
         <div class="game-stats">
             <div class="game-stat"><span>Ур.</span><span>${g_player.level}</span></div>
             <div class="game-stat"><span>❤️ HP</span><span>${Math.floor(g_player.hp)}/${g_player.max_hp}</span></div>
             <div class="game-stat"><span>⚔️ Урон</span><span>${g_player.base_dmg}</span></div>
-            <div class="game-stat"><span>💰 Золото</span><span>${g_player.gold}</span></div>
-            <div class="game-stat"><span>💊 Пилюли</span><span>${g_player.pills}</span></div>
+            <div class="game-stat"><span>🧠 Безумие</span><span>${g_player.stats.madness}</span></div>
+            <div class="game-stat"><span>😡 Агрессия</span><span>${g_player.stats.aggression}</span></div>
         </div>
 
         <h3 style="color: #f39c12; margin-bottom: 10px;">Выбор этажа</h3>
@@ -207,6 +253,7 @@ function renderGame() {
 
         ${battleHtml}
         ${invHtml}
+        ${eqHtml}
     `;
 }
 
@@ -221,7 +268,7 @@ function selectFloor(f) {
 function selectBoss(bossName) {
     g_player.currentBoss = bossName;
     const boss = GAME_BOSSES.find(b => b.name === bossName);
-    g_player.bossCurrentHp = boss.hp; // Сброс HP босса при выборе
+    g_player.bossCurrentHp = boss.hp;
     g_player.battleLog = [`Вы выбрали ${bossName}`];
     g_savePlayer();
     renderGame();
@@ -240,33 +287,27 @@ function attackBoss() {
     if (!g_player.currentBoss) return;
     const boss = GAME_BOSSES.find(b => b.name === g_player.currentBoss);
     
-    // Твой удар
     let dmg = g_player.base_dmg + Math.floor(Math.random() * 10);
     g_player.battleLog.push(`Вы нанесли ${dmg} урона!`);
     g_player.bossCurrentHp -= dmg;
 
-    // Проверка победы
     if (g_player.bossCurrentHp <= 0) {
-        g_player.battleLog.push(`🎉 Вы победили ${boss.name}! Получено: ${boss.xp} опыта, ${boss.gold} золота.`);
-        
-        // Выдача наград
+        g_player.battleLog.push(`🎉 Вы победили ${boss.name}!`);
         g_player.gold += boss.gold;
         g_player.pills += boss.pills;
         g_player.xp += boss.xp;
         g_player.bossCurrentHp = 0;
-        g_player.hp = g_player.max_hp; // Восстановление HP!
+        g_player.hp = g_player.max_hp;
 
-        // Выдача дропа
-        if (boss.drop && boss.drop.length > 0) {
+        if (boss.drop) {
             boss.drop.forEach(item => {
                 if (item === "Комната") return;
                 g_player.inventory[item] = (g_player.inventory[item] || 0) + 1;
-                g_player.battleLog.push(`📦 Выпал предмет: ${item} (1 шт.)`);
+                g_player.battleLog.push(`📦 Выпал предмет: ${item}`);
             });
         }
 
-        // Проверка на повышение уровня
-        if (g_player.xp >= 100) { // Упрощенно
+        if (g_player.xp >= 100) {
             g_player.xp -= 100;
             g_player.level++;
             g_player.max_hp += 10;
@@ -274,13 +315,12 @@ function attackBoss() {
             g_player.battleLog.push(`⭐ УРОВЕНЬ ПОВЫШЕН до ${g_player.level}!`);
         }
 
-        g_player.currentBoss = null; // Сбрасываем выбор, чтобы можно было выбрать другого
+        g_player.currentBoss = null;
         g_savePlayer();
         renderGame();
         return;
     }
 
-    // Удар босса
     let bossDmg = boss.dmg[0] + Math.floor(Math.random() * (boss.dmg[1] - boss.dmg[0]));
     g_player.hp -= bossDmg;
     g_player.battleLog.push(`${boss.name} нанес ${bossDmg} урона!`);
@@ -293,6 +333,37 @@ function attackBoss() {
 
     if (g_player.battleLog.length > 10) g_player.battleLog.shift();
 
+    g_savePlayer();
+    renderGame();
+}
+
+// --- НАДЕВАНИЕ ПРЕДМЕТА ---
+function tryEquip(itemName) {
+    // Ищем, к какому слоту относится предмет (по названию)
+    let slot = null;
+    if (itemName.includes("Штаны")) slot = "pants";
+    else if (itemName.includes("Куртка")) slot = "jacket";
+    else if (itemName.includes("Перчатки")) slot = "gloves";
+    else if (itemName.includes("Обувь")) slot = "boots";
+    else if (itemName.includes("Маска")) slot = "mask";
+    else if (itemName.includes("Головной убор")) slot = "hat";
+    else if (itemName.includes("Оружие")) slot = "weapon";
+    else if (itemName.includes("Аксессуар")) slot = "amulet";
+    else if (itemName.includes("Питомец")) slot = "pet";
+    else {
+        alert("Этот предмет нельзя надеть (это не экипировка).");
+        return;
+    }
+
+    // Проверяем, есть ли предмет в инвентаре
+    if (!g_player.inventory[itemName] || g_player.inventory[itemName] <= 0) return;
+
+    // Снимаем старое (если было)
+    // (Упрощенно: просто заменяем)
+    g_player.inventory[itemName]--;
+    if (g_player.inventory[itemName] <= 0) delete g_player.inventory[itemName];
+
+    g_player.equipment[slot] = itemName;
     g_savePlayer();
     renderGame();
 }
