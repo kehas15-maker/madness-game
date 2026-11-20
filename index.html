@@ -258,9 +258,10 @@ function renderGame() {
                 <div class="battle-hp-bar"><div class="battle-hp-fill" style="width: ${hpPercent}%; background: ${hpPercent < 30 ? '#e74c3c' : '#2ecc71'};"></div></div>
                 <p class="small">HP: ${Math.max(0, g_player.bossCurrentHp)} / ${currentBossData.hp}</p>
                 
-                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
-                    <button class="btn" onclick="attackBoss()" style="flex: 1;">⚔️ Атаковать</button>
-                    <button class="btn btn-secondary" onclick="resetBoss()" style="flex: 1;">🔄 Сброс</button>
+              <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                <button class="btn" onclick="renderGame()" style="background: #e74c3c;">⚔️ В бой</button>
+                <button class="btn" onclick="showBusinesses()" style="background: #2ecc71;">🏭 Бизнесы</button>
+                <button class="btn" onclick="showDice()" style="background: #9b59b6;">🎲 Кости</button>
                 </div>
                 <div class="battle-log" id="battleLog">${g_player.battleLog.join('<br>')}</div>
             </div>
@@ -371,7 +372,15 @@ function attackBoss() {
                 g_player.battleLog.push(`📦 Выпал предмет: ${item}`);
             });
         }
-
+            // Шанс выпадения сета "Безумец"
+            if (Math.random() < 0.05) { // 5% шанс
+            const madmanItems = ["madman_pants", "madman_jacket", "madman_gloves", "madman_boots", "madman_mask", "madman_hat", "madman_amulet", "madman_weapon"];
+            const randomItem = madmanItems[Math.floor(Math.random() * madmanItems.length)];
+            const itemName = EQUIPMENT_SETS["madman_set"].items[randomItem].name;
+            g_player.inventory[itemName] = (g_player.inventory[itemName] || 0) + 1;
+            g_player.battleLog.push(`💎 РЕДКИЙ ДРОП: ${itemName}!`);
+}
+        
         if (g_player.xp >= 100) {
             g_player.xp -= 100;
             g_player.level++;
@@ -508,7 +517,65 @@ function upgradeBusiness(id) {
     g_savePlayer();
     showBusinesses(); // Обновляем вкладку бизнесов
 }
+// --- КОСТИ ---
+const DICE_COMBINATIONS = {
+    "6-6-6": { reward: { bills: 2000, item: "Трость" }, chance: 0.01, name: "Три шестёрки" },
+    "5-5-5": { reward: { bills: 800, item: "Маска" }, chance: 0.02, name: "Три пятёрки" },
+    "4-4-4": { reward: { bills: 400, item: "Штаны" }, chance: 0.03, name: "Три четвёрки" },
+    "3-3-3": { reward: { pills: 99000, item: "Куртка" }, chance: 0.03, name: "Три тройки" },
+    "2-2-2": { reward: { gold: 16650, item: "Перчатки" }, chance: 0.04, name: "Три двойки" },
+    "1-1-1": { reward: { gold: 13875, item: "Обувь" }, chance: 0.04, name: "Три единицы" },
+    "6-6": { reward: { gold: 13875, item: "Аксессуар" }, chance: 0.04, name: "Две шестёрки" },
+    "5-5": { reward: { gold: 8325 }, chance: 0.04, name: "Две пятёрки" },
+    "4-4": { reward: { bills: 30 }, chance: 0.05, name: "Две четвёрки" },
+    "3-3": { reward: { item: "Лекарство", qty: 40 }, chance: 0.05, name: "Две тройки" },
+    "2-2": { reward: { pills: 2500, item: "Инъекция", qty: 2 }, chance: 0.10, name: "Две двойки" },
+    "1-1": { reward: { xp: 200 }, chance: 0.20, name: "Две единицы" },
+    "none": { reward: { gold: 2500 }, chance: 0.35, name: "Без комбинации" }
+};
+// --- КОСТИ ---
+function showDice() {
+    const container = document.getElementById("gameContainer");
+    let html = `<div class="battle-area" style="text-align: left;">
+        <h3 style="color: #9b59b6;">🎲 Кости</h3>
+        <button class="btn btn-secondary" onclick="renderGame()" style="margin-bottom: 15px;">⬅️ Назад в бой</button>
+        <p class="small">Брось три кубика и попробуй собрать комбинацию. Чем реже комбинация — тем лучше награда!</p>
+        <div id="diceResult" style="text-align: center; font-size: 40px; margin: 20px 0; letter-spacing: 10px;">🎲 🎲 🎲</div>
+        <button class="btn" onclick="rollDice()" style="background: #9b59b6;">Бросить кубики</button>
+        <div id="diceLog" style="margin-top: 15px; font-size: 14px; color: #ccc;"></div>
+    </div>`;
+    container.innerHTML = html;
+}
 
+function rollDice() {
+    const dice = [Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1, Math.floor(Math.random() * 6) + 1];
+    const diceEmojis = ["⚀", "⚁", "⚂", "⚃", "⚄", "⚅"];
+    document.getElementById("diceResult").innerHTML = dice.map(d => diceEmojis[d-1]).join(" ");
+
+    // Проверка комбинации
+    const sorted = [...dice].sort((a, b) => b - a);
+    let combo = "none";
+    if (sorted[0] === sorted[1] && sorted[1] === sorted[2]) combo = `${sorted[0]}-${sorted[0]}-${sorted[0]}`;
+    else if (sorted[0] === sorted[1]) combo = `${sorted[0]}-${sorted[0]}`;
+    else if (sorted[1] === sorted[2]) combo = `${sorted[1]}-${sorted[1]}`;
+
+    const data = DICE_COMBINATIONS[combo] || DICE_COMBINATIONS["none"];
+    let logHtml = `<p><b>Комбинация:</b> ${data.name}</p>`;
+
+    if (data.reward.gold) { g_player.gold += data.reward.gold; logHtml += `<p>💰 Золото: +${data.reward.gold}</p>`; }
+    if (data.reward.pills) { g_player.pills += data.reward.pills; logHtml += `<p>💊 Пилюли: +${data.reward.pills}</p>`; }
+    if (data.reward.bills) { g_player.bills += data.reward.bills; logHtml += `<p>💵 Купюры: +${data.reward.bills}</p>`; }
+    if (data.reward.xp) { g_player.xp += data.reward.xp; logHtml += `<p>👁️ Опыт: +${data.reward.xp}</p>`; }
+    if (data.reward.item) { 
+        const qty = data.reward.qty || 1;
+        g_player.inventory[data.reward.item] = (g_player.inventory[data.reward.item] || 0) + qty;
+        logHtml += `<p>📦 Предмет: ${data.reward.item} x${qty}</p>`; 
+    }
+
+    document.getElementById("diceLog").innerHTML = logHtml;
+    g_savePlayer();
+}
+    
 renderGame();
 </script>
 </body>
