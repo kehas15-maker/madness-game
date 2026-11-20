@@ -146,14 +146,7 @@ const GAME_BUSINESSES = {
         floor: "A-1",
         max_level: 6,
         upgrade_resource: "Бинты",
-        levels: {
-            1: { cost: 1, income: 23 },
-            2: { cost: 2, income: 30 },
-            3: { cost: 3, income: 38 },
-            4: { cost: 4, income: 45 },
-            5: { cost: 5, income: 53 },
-            6: { cost: 6, income: 60 }
-        },
+        levels: { 1: { cost: 1, income: 23 }, 2: { cost: 2, income: 30 }, 3: { cost: 3, income: 38 }, 4: { cost: 4, income: 45 }, 5: { cost: 5, income: 53 }, 6: { cost: 6, income: 60 } },
         income_currency: "pills",
         interval_hours: 8
     },
@@ -162,15 +155,53 @@ const GAME_BUSINESSES = {
         floor: "A-1",
         max_level: 6,
         upgrade_resource: "Ошейник",
-        levels: {
-            1: { cost: 1, income: 75 },
-            2: { cost: 2, income: 90 },
-            3: { cost: 3, income: 105 },
-            4: { cost: 4, income: 120 },
-            5: { cost: 5, income: 135 },
-            6: { cost: 6, income: 150 }
-        },
+        levels: { 1: { cost: 1, income: 75 }, 2: { cost: 2, income: 90 }, 3: { cost: 3, income: 105 }, 4: { cost: 4, income: 120 }, 5: { cost: 5, income: 135 }, 6: { cost: 6, income: 150 } },
         income_currency: "gold",
+        interval_hours: 8
+    },
+    "observation_deck": {
+        name: "Смотровая",
+        floor: "A-1",
+        max_level: 6,
+        upgrade_resource: "Монеты",
+        levels: { 1: { cost: 350, income: 23 }, 2: { cost: 380, income: 30 }, 3: { cost: 410, income: 38 }, 4: { cost: 440, income: 45 }, 5: { cost: 470, income: 53 }, 6: { cost: 500, income: 60 } },
+        income_currency: "gold",
+        interval_hours: 8
+    },
+    "game_room": {
+        name: "Игровая комната",
+        floor: "A-2",
+        max_level: 6,
+        upgrade_resource: "Зайчик",
+        levels: { 1: { cost: 1, income: 45 }, 2: { cost: 2, income: 53 }, 3: { cost: 3, income: 60 }, 4: { cost: 4, income: 68 }, 5: { cost: 5, income: 75 }, 6: { cost: 6, income: 83 } },
+        income_currency: "pills",
+        interval_hours: 8
+    },
+    "rehab_room": {
+        name: "Реабилитационный покой",
+        floor: "A-2",
+        max_level: 6,
+        upgrade_resource: "Нож",
+        levels: { 1: { cost: 1, income: 150 }, 2: { cost: 2, income: 188 }, 3: { cost: 3, income: 225 }, 4: { cost: 4, income: 263 }, 5: { cost: 5, income: 300 }, 6: { cost: 6, income: 338 } },
+        income_currency: "gold",
+        interval_hours: 8
+    },
+    "checkpoint": {
+        name: "Проходная",
+        floor: "A-3",
+        max_level: 6,
+        upgrade_resource: "Нож",
+        levels: { 1: { cost: 10, income: 203 }, 2: { cost: 15, income: 248 }, 3: { cost: 20, income: 293 }, 4: { cost: 24, income: 338 }, 5: { cost: 25, income: 383 }, 6: { cost: 30, income: 428 } },
+        income_currency: "gold",
+        interval_hours: 12
+    },
+    "cctv_room": {
+        name: "Комната видеонаблюдения",
+        floor: "A-3",
+        max_level: 6,
+        upgrade_resource: "Зайчик",
+        levels: { 1: { cost: 10, income: 23 }, 2: { cost: 15, income: 68 }, 3: { cost: 20, income: 113 }, 4: { cost: 24, income: 158 }, 5: { cost: 17, income: 203 }, 6: { cost: 30, income: 248 } },
+        income_currency: "exp",
         interval_hours: 8
     }
 };
