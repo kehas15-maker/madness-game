@@ -29,6 +29,7 @@
         
         .btn { width: 100%; padding: 12px; background: #e74c3c; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
         .btn:disabled { background: #555; cursor: not-allowed; }
+        .btn-secondary { background: #555; }
 
         .inventory { background: rgba(42, 42, 42, 0.8); padding: 15px; border-radius: 8px; margin-top: 15px; }
         .inv-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; cursor: pointer; }
@@ -36,7 +37,7 @@
         
         .equipment { background: rgba(42, 42, 42, 0.8); padding: 15px; border-radius: 8px; margin-top: 15px; }
         .eq-slot { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; }
-        .eq-slot span:last-child { color: #2ecc71; }
+        .eq-slot span:last-child { color: #2ecc71; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -138,8 +139,44 @@ const EQUIPMENT_SETS = {
     }
 };
 
+// --- БИЗНЕСЫ ---
+const GAME_BUSINESSES = {
+    "nursery": {
+        name: "Сестринская",
+        floor: "A-1",
+        max_level: 6,
+        upgrade_resource: "Бинты",
+        levels: {
+            1: { cost: 1, income: 23 },
+            2: { cost: 2, income: 30 },
+            3: { cost: 3, income: 38 },
+            4: { cost: 4, income: 45 },
+            5: { cost: 5, income: 53 },
+            6: { cost: 6, income: 60 }
+        },
+        income_currency: "pills",
+        interval_hours: 8
+    },
+    "pharmacy": {
+        name: "Фармацевтический склад",
+        floor: "A-1",
+        max_level: 6,
+        upgrade_resource: "Ошейник",
+        levels: {
+            1: { cost: 1, income: 75 },
+            2: { cost: 2, income: 90 },
+            3: { cost: 3, income: 105 },
+            4: { cost: 4, income: 120 },
+            5: { cost: 5, income: 135 },
+            6: { cost: 6, income: 150 }
+        },
+        income_currency: "gold",
+        interval_hours: 8
+    }
+};
+
 // --- СОСТОЯНИЕ ИГРОКА ---
-let g_player = JSON.parse(localStorage.getItem('madness_player_v5')) || {
+let g_player = JSON.parse(localStorage.getItem('madness_player_v6')) || {
     level: 1,
     xp: 0,
     max_hp: 190,
@@ -159,24 +196,22 @@ let g_player = JSON.parse(localStorage.getItem('madness_player_v5')) || {
     equipment: {
         weapon: "patient_weapon", pants: "patient_pants", jacket: "patient_jacket",
         gloves: "patient_gloves", boots: "patient_boots", mask: "patient_mask", hat: "patient_hat"
-    } // Стартовый сет
+    },
+    business: {}
 };
 
 function g_savePlayer() {
-    localStorage.setItem('madness_player_v5', JSON.stringify(g_player));
+    localStorage.setItem('madness_player_v6', JSON.stringify(g_player));
 }
 
 // --- ПЕРЕСЧЕТ СТАТОВ С УЧЕТОМ ЭКИПИРОВКИ ---
 function recalcStats() {
-    // Базовые статы
     let base = { madness: 30, aggression: 30, fury: 30 };
     
-    // Бонусы от экипировки
     Object.values(g_player.equipment).forEach(itemId => {
         if (!itemId) return;
-        // Ищем, к какому сету относится предмет
-       for (const [setName, setData] of Object.entries(EQUIPMENT_SETS)) {
-                if (setData.items[itemId]) {
+        for (const [setName, setData] of Object.entries(EQUIPMENT_SETS)) {
+            if (setData.items[itemId]) {
                 base.madness += setData.stat_bonus.madness;
                 base.aggression += setData.stat_bonus.aggression;
                 base.fury += setData.stat_bonus.fury;
@@ -225,7 +260,7 @@ function renderGame() {
                 
                 <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
                     <button class="btn" onclick="attackBoss()" style="flex: 1;">⚔️ Атаковать</button>
-                    <button class="btn" onclick="resetBoss()" style="background: #555; flex: 1;">🔄 Сброс</button>
+                    <button class="btn btn-secondary" onclick="resetBoss()" style="flex: 1;">🔄 Сброс</button>
                 </div>
                 <div class="battle-log" id="battleLog">${g_player.battleLog.join('<br>')}</div>
             </div>
@@ -249,22 +284,29 @@ function renderGame() {
     let eqHtml = `<div class="equipment"><h3 style="color: #f39c12; margin-top: 0;">🛡️ Экипировка</h3>`;
     Object.entries(g_player.equipment).forEach(([slot, item]) => {
         if (item) {
-           let itemName = item;
-for (const set of Object.values(EQUIPMENT_SETS)) {
-    if (set.items[item]) { itemName = set.items[item].name; break; }
-}
-eqHtml += `<div class="eq-slot"><span>${slot}:</span><span>${itemName}</span></div>`;
+            let itemName = item;
+            for (const set of Object.values(EQUIPMENT_SETS)) {
+                if (set.items[item]) { itemName = set.items[item].name; break; }
+            }
+            eqHtml += `<div class="eq-slot"><span>${slot}:</span><span>${itemName}</span></div>`;
         }
     });
     eqHtml += `</div>`;
 
     container.innerHTML = `
+        <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+            <button class="btn" onclick="renderGame()" style="background: #e74c3c;">⚔️ В бой</button>
+            <button class="btn" onclick="showBusinesses()" style="background: #2ecc71;">🏭 Бизнесы</button>
+        </div>
+
         <div class="game-stats">
             <div class="game-stat"><span>Ур.</span><span>${g_player.level}</span></div>
             <div class="game-stat"><span>❤️ HP</span><span>${Math.floor(g_player.hp)}/${g_player.max_hp}</span></div>
             <div class="game-stat"><span>⚔️ Урон</span><span>${g_player.base_dmg}</span></div>
             <div class="game-stat"><span>🧠 Безумие</span><span>${g_player.stats.madness}</span></div>
             <div class="game-stat"><span>😡 Агрессия</span><span>${g_player.stats.aggression}</span></div>
+            <div class="game-stat"><span>💰 Золото</span><span>${g_player.gold}</span></div>
+            <div class="game-stat"><span>💊 Пилюли</span><span>${g_player.pills}</span></div>
         </div>
 
         <h3 style="color: #f39c12; margin-bottom: 10px;">Выбор этажа</h3>
@@ -300,7 +342,8 @@ function resetBoss() {
     if (!g_player.currentBoss) return;
     const boss = GAME_BOSSES.find(b => b.name === g_player.currentBoss);
     g_player.bossCurrentHp = boss.hp;
-    g_player.battleLog = [`Бой с ${boss.name} начат заново`];
+    g_player.hp = g_player.max_hp; // Восстановление HP
+    g_player.battleLog = [`Бой с ${boss.name} начат заново. HP восстановлено.`];
     g_savePlayer();
     renderGame();
 }
@@ -349,7 +392,7 @@ function attackBoss() {
 
     if (g_player.hp <= 0) {
         g_player.hp = 1;
-        g_player.battleLog.push(`Вы проиграли! Восстановите HP.`);
+        g_player.battleLog.push(`Вы проиграли! Нажмите "Сброс", чтобы восстановить HP.`);
         g_player.currentBoss = null;
     }
 
@@ -361,7 +404,6 @@ function attackBoss() {
 
 // --- НАДЕВАНИЕ ПРЕДМЕТА ---
 function tryEquip(itemName) {
-    // Ищем, к какому слоту относится предмет (по названию)
     let slot = null;
     if (itemName.includes("Штаны")) slot = "pants";
     else if (itemName.includes("Куртка")) slot = "jacket";
@@ -377,17 +419,94 @@ function tryEquip(itemName) {
         return;
     }
 
-    // Проверяем, есть ли предмет в инвентаре
     if (!g_player.inventory[itemName] || g_player.inventory[itemName] <= 0) return;
 
-    // Снимаем старое (если было)
-    // (Упрощенно: просто заменяем)
     g_player.inventory[itemName]--;
     if (g_player.inventory[itemName] <= 0) delete g_player.inventory[itemName];
 
     g_player.equipment[slot] = itemName;
     g_savePlayer();
     renderGame();
+}
+
+// --- БИЗНЕСЫ ---
+function showBusinesses() {
+    const container = document.getElementById("gameContainer");
+    let html = `<div class="battle-area" style="text-align: left;"><h3 style="color: #f39c12;">🏭 Бизнесы</h3>`;
+    html += `<button class="btn btn-secondary" onclick="renderGame()" style="margin-bottom: 15px;">⬅️ Назад в бой</button>`;
+    
+    for (const [id, biz] of Object.entries(GAME_BUSINESSES)) {
+        const state = g_player.business[id] || { level: 0, last_collect: Date.now() };
+        const currentLevel = state.level;
+        
+        html += `<div class="inventory" style="margin-top: 10px;">`;
+        html += `<h3 style="color: #f39c12;">${biz.name} (Ур. ${currentLevel}/${biz.max_level})</h3>`;
+        
+        if (currentLevel > 0) {
+            const income = biz.levels[currentLevel].income;
+            html += `<p class="small">Доход: ${income} ${biz.income_currency} каждые ${biz.interval_hours}ч.</p>`;
+            
+            const hoursPassed = (Date.now() - state.last_collect) / (1000 * 60 * 60);
+            const intervals = Math.floor(hoursPassed / biz.interval_hours);
+            if (intervals > 0) {
+                html += `<button class="btn" onclick="collectBusiness('${id}')">💰 Собрать (${intervals} циклов)</button>`;
+            } else {
+                html += `<p class="small" style="color: #888;">Доход ещё не накопился.</p>`;
+            }
+        }
+        
+        if (currentLevel < biz.max_level) {
+            const nextLevel = currentLevel + 1;
+            const cost = biz.levels[nextLevel].cost;
+            const have = g_player.inventory[biz.upgrade_resource] || 0;
+            html += `<button class="btn" onclick="upgradeBusiness('${id}')" ${have < cost ? 'disabled' : ''} style="margin-top: 10px;">⬆️ Улучшить до Ур. ${nextLevel} (Нужно: ${cost} ${biz.upgrade_resource} | У вас: ${have})</button>`;
+        } else {
+            html += `<p class="small" style="color: #2ecc71;">Максимальный уровень!</p>`;
+        }
+        
+        html += `</div>`;
+    }
+    
+    html += `</div>`;
+    container.innerHTML = html;
+}
+
+function collectBusiness(id) {
+    const biz = GAME_BUSINESSES[id];
+    const state = g_player.business[id];
+    if (!state || state.level === 0) return;
+    
+    const hoursPassed = (Date.now() - state.last_collect) / (1000 * 60 * 60);
+    const intervals = Math.floor(hoursPassed / biz.interval_hours);
+    
+    if (intervals === 0) return;
+    
+    const income = biz.levels[state.level].income * intervals;
+    if (biz.income_currency === "gold") g_player.gold += income;
+    else if (biz.income_currency === "pills") g_player.pills += income;
+    
+    state.last_collect = Date.now();
+    g_savePlayer();
+    showBusinesses(); // Обновляем вкладку бизнесов
+}
+
+function upgradeBusiness(id) {
+    const biz = GAME_BUSINESSES[id];
+    const state = g_player.business[id] || { level: 0, last_collect: Date.now() };
+    const nextLevel = state.level + 1;
+    
+    if (nextLevel > biz.max_level) return;
+    
+    const cost = biz.levels[nextLevel].cost;
+    if ((g_player.inventory[biz.upgrade_resource] || 0) < cost) return;
+    
+    g_player.inventory[biz.upgrade_resource] -= cost;
+    state.level = nextLevel;
+    if (state.level === 1) state.last_collect = Date.now(); // Начинаем отсчет при постройке
+    g_player.business[id] = state;
+    
+    g_savePlayer();
+    showBusinesses(); // Обновляем вкладку бизнесов
 }
 
 renderGame();
