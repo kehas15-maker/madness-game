@@ -28,6 +28,10 @@
         .battle-log { max-height: 150px; overflow-y: auto; font-size: 13px; color: #ccc; text-align: left; margin-top: 10px; border-top: 1px solid #444; padding-top: 10px; }
         
         .btn { width: 100%; padding: 12px; background: #e74c3c; color: #fff; border: none; border-radius: 6px; font-size: 16px; font-weight: bold; cursor: pointer; margin-bottom: 10px; }
+        .btn:disabled { background: #555; cursor: not-allowed; }
+
+        .inventory { background: rgba(42, 42, 42, 0.8); padding: 15px; border-radius: 8px; margin-top: 15px; }
+        .inv-item { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #333; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -39,81 +43,78 @@
 </div>
 
 <script>
-// --- БАЗА БОССОВ ---
+// --- БАЗА БОССОВ (HP, Урон, Дроп) ---
 const GAME_BOSSES = [
-    { name: "Генри Литен", floor: "A-1", hp: 600, dmg: [5, 20], xp: 25, gold: 25, pills: 0 },
-    { name: "Амалия Банши", floor: "A-1", hp: 300, dmg: [10, 20], xp: 25, gold: 0, pills: 5 },
-    { name: "«Малыш» Джон", floor: "A-2", hp: 2500, dmg: [15, 30], xp: 75, gold: 0, pills: 0 },
-    { name: "Крошка «Сью»", floor: "A-2", hp: 3000, dmg: [15, 20], xp: 75, gold: 0, pills: 0 },
-    { name: "Охранник Манфред", floor: "A-3", hp: 7000, dmg: [20, 35], xp: 115, gold: 500, pills: 0 },
-    { name: "Руди «Аналитик»", floor: "A-3", hp: 7000, dmg: [15, 40], xp: 150, gold: 0, pills: 200 },
-    { name: "Аксель Шварценштайн", floor: "B-1", hp: 11000, dmg: [40, 60], xp: 145, gold: 50, pills: 0 },
-    { name: "Агнет «Балерина»", floor: "B-1", hp: 11000, dmg: [40, 60], xp: 145, gold: 50, pills: 0 },
-    { name: "Дорин Гамбрино", floor: "B-2", hp: 100000, dmg: [160, 480], xp: 200, gold: 75, pills: 0 },
-    { name: "Бруно Цугенкоф", floor: "B-2", hp: 130000, dmg: [140, 430], xp: 200, gold: 75, pills: 0 },
-    { name: "Сестра Каролайн", floor: "B-3", hp: 140000, dmg: [160, 490], xp: 300, gold: 125, pills: 0 },
-    { name: "Олаф Слатер", floor: "B-3", hp: 120000, dmg: [130, 390], xp: 300, gold: 125, pills: 0 },
-    { name: "Гордон Кибероуз", floor: "C-1", hp: 200000, dmg: [200, 600], xp: 450, gold: 200, pills: 0 },
-    { name: "Дуглас Макфадден", floor: "C-1", hp: 170000, dmg: [180, 550], xp: 450, gold: 200, pills: 0 },
-    { name: "Броуди Кавальери", floor: "C-2", hp: 210000, dmg: [220, 680], xp: 525, gold: 250, pills: 0 },
-    { name: "Франческа Де ла Пизани", floor: "C-2", hp: 200000, dmg: [200, 600], xp: 525, gold: 250, pills: 0 },
-    { name: "Ален Грант", floor: "C-3", hp: 230000, dmg: [180, 550], xp: 650, gold: 325, pills: 0 },
-    { name: "Элайза Картер", floor: "C-3", hp: 240000, dmg: [230, 650], xp: 650, gold: 325, pills: 0 },
-    { name: "Вальтер Шпинне", floor: "D-1", hp: 200000, dmg: [500, 1000], xp: 2000, gold: 0, pills: 3850 },
-    { name: "Стефан и Ганс Крейг", floor: "D-1", hp: 400000, dmg: [350, 1050], xp: 750, gold: 7000, pills: 0 },
-    { name: "Геррод и Герда", floor: "D-2", hp: 450000, dmg: [300, 1000], xp: 850, gold: 400, pills: 0 },
-    { name: "Зузанна и Анита Болеславски", floor: "D-2", hp: 400000, dmg: [350, 1000], xp: 850, gold: 400, pills: 0 },
-    { name: "Аделаида Шальца", floor: "D-3", hp: 500000, dmg: [300, 900], xp: 1000, gold: 500, pills: 0 },
-    { name: "Хуго Ван Дер Вейден", floor: "D-3", hp: 500000, dmg: [400, 1200], xp: 1000, gold: 500, pills: 0 },
-    { name: "Иероним Георг фон Риттер", floor: "E-1", hp: 750000, dmg: [600, 1800], xp: 1175, gold: 600, pills: 0 },
-    { name: "Фрау Анжелика Буркхардт", floor: "E-1", hp: 800000, dmg: [500, 1500], xp: 1175, gold: 600, pills: 0 },
-    { name: "Карл Магнус Иверман", floor: "E-2", hp: 900000, dmg: [600, 1800], xp: 1350, gold: 700, pills: 0 },
-    { name: "Отто Магнус Иверман", floor: "E-2", hp: 900000, dmg: [600, 2000], xp: 1350, gold: 700, pills: 0 },
-    { name: "Кибер-адъюнкт v.3.5", floor: "E-3", hp: 950000, dmg: [500, 1500], xp: 1500, gold: 800, pills: 0 },
-    { name: "Профессор Г. Буркхардт", floor: "E-3", hp: 1000000, dmg: [650, 2000], xp: 1500, gold: 800, pills: 0 },
-    { name: "Вий", floor: "F-1", hp: 1200000, dmg: [600, 2000], xp: 1600, gold: 850, pills: 0 },
-    { name: "Директориус", floor: "F-1", hp: 1300000, dmg: [600, 1800], xp: 1650, gold: 875, pills: 0 },
-    { name: "Бабушка", floor: "F-2", hp: 1400000, dmg: [600, 2000], xp: 1750, gold: 915, pills: 0 },
-    { name: "Экзекутор", floor: "F-2", hp: 1300000, dmg: [700, 2300], xp: 1700, gold: 900, pills: 0 },
-    { name: "Нерожденные", floor: "F-3", hp: 1500000, dmg: [600, 1700], xp: 1800, gold: 935, pills: 0 },
-    { name: "Оно", floor: "F-3", hp: 1600000, dmg: [700, 2200], xp: 1900, gold: 950, pills: 0 },
-    { name: "Кентавр", floor: "G-1", hp: 650000, dmg: [200, 700], xp: 157, gold: 61, pills: 0 },
-    { name: "Курильщица", floor: "G-1", hp: 600000, dmg: [250, 800], xp: 155, gold: 60, pills: 0 },
-    { name: "Лоботом", floor: "G-2", hp: 700000, dmg: [250, 800], xp: 163, gold: 65, pills: 0 },
-    { name: "Утопленный", floor: "G-2", hp: 700000, dmg: [300, 900], xp: 161, gold: 63, pills: 0 },
-    { name: "Привратник", floor: "G-3", hp: 800000, dmg: [550, 1500], xp: 164, gold: 66, pills: 0 },
-    { name: "Упырь", floor: "G-3", hp: 800000, dmg: [500, 1500], xp: 164, gold: 66, pills: 0 },
-    { name: "Матка", floor: "H-1", hp: 1600000, dmg: [500, 1500], xp: 855, gold: 400, pills: 0 },
-    { name: "Шаман", floor: "H-1", hp: 1600000, dmg: [450, 1400], xp: 867, gold: 403, pills: 0 },
-    { name: "Вектор", floor: "H-2", hp: 2000000, dmg: [400, 1300], xp: 858, gold: 403, pills: 0 },
-    { name: "Самсон", floor: "H-2", hp: 2000000, dmg: [450, 1300], xp: 861, gold: 408, pills: 0 },
-    { name: "Безликая", floor: "H-3", hp: 2000000, dmg: [450, 1350], xp: 864, gold: 409, pills: 0 },
-    { name: "Кровожадный Али", floor: "H-3", hp: 2500000, dmg: [500, 1500], xp: 866, gold: 413, pills: 0 },
-    { name: "Толстяк", floor: "I-1", hp: 5000000, dmg: [1350, 4100], xp: 1150, gold: 1455, pills: 0 },
-    { name: "Уборщик", floor: "I-1", hp: 5000000, dmg: [1200, 3700], xp: 1200, gold: 1480, pills: 0 },
-    { name: "Весельчаки", floor: "I-2", hp: 6500000, dmg: [1380, 4140], xp: 1400, gold: 1600, pills: 0 },
-    { name: "Глаз", floor: "I-2", hp: 6000000, dmg: [1550, 4650], xp: 1375, gold: 1560, pills: 0 },
-    { name: "Гамбит", floor: "I-3", hp: 6000000, dmg: [1140, 3430], xp: 1550, gold: 1700, pills: 0 },
-    { name: "Ультиматум", floor: "I-3", hp: 6000000, dmg: [1430, 4280], xp: 1500, gold: 1640, pills: 0 }
+    { name: "Генри Литен", floor: "A-1", hp: 600, dmg: [5, 20], xp: 25, gold: 25, pills: 0, drop: ["Ошейник"] },
+    { name: "Амалия Банши", floor: "A-1", hp: 300, dmg: [10, 20], xp: 25, gold: 0, pills: 5, drop: ["Бинты"] },
+    { name: "«Малыш» Джон", floor: "A-2", hp: 2500, dmg: [15, 30], xp: 75, gold: 0, pills: 0, drop: ["Зайчик"] },
+    { name: "Крошка «Сью»", floor: "A-2", hp: 3000, dmg: [15, 20], xp: 75, gold: 0, pills: 0, drop: ["Нож"] },
+    { name: "Охранник Манфред", floor: "A-3", hp: 7000, dmg: [20, 35], xp: 115, gold: 500, pills: 0, drop: ["Фуражка"] },
+    { name: "Руди «Аналитик»", floor: "A-3", hp: 7000, dmg: [15, 40], xp: 150, gold: 0, pills: 200, drop: ["Физраствор"] },
+    { name: "Аксель Шварценштайн", floor: "B-1", hp: 11000, dmg: [40, 60], xp: 145, gold: 50, pills: 0, drop: ["Поводок"] },
+    { name: "Агнет «Балерина»", floor: "B-1", hp: 11000, dmg: [40, 60], xp: 145, gold: 50, pills: 0, drop: ["Тесак"] },
+    { name: "Дорин Гамбрино", floor: "B-2", hp: 100000, dmg: [160, 480], xp: 200, gold: 75, pills: 0, drop: ["Оковы"] },
+    { name: "Бруно Цугенкоф", floor: "B-2", hp: 130000, dmg: [140, 430], xp: 200, gold: 75, pills: 0, drop: ["Череп"] },
+    { name: "Сестра Каролайн", floor: "B-3", hp: 140000, dmg: [160, 490], xp: 300, gold: 125, pills: 0, drop: ["Халат"] },
+    { name: "Олаф Слатер", floor: "B-3", hp: 120000, dmg: [130, 390], xp: 300, gold: 125, pills: 0, drop: ["Топор"] },
+    { name: "Гордон Кибероуз", floor: "C-1", hp: 200000, dmg: [200, 600], xp: 450, gold: 200, pills: 0, drop: ["Грабли"] },
+    { name: "Дуглас Макфадден", floor: "C-1", hp: 170000, dmg: [180, 550], xp: 450, gold: 200, pills: 0, drop: ["Пропуск"] },
+    { name: "Броуди Кавальери", floor: "C-2", hp: 210000, dmg: [220, 680], xp: 525, gold: 250, pills: 0, drop: ["Кандалы"] },
+    { name: "Франческа Де ла Пизани", floor: "C-2", hp: 200000, dmg: [200, 600], xp: 525, gold: 250, pills: 0, drop: ["Шапка"] },
+    { name: "Ален Грант", floor: "C-3", hp: 230000, dmg: [180, 550], xp: 650, gold: 325, pills: 0, drop: ["Обугленный череп"] },
+    { name: "Элайза Картер", floor: "C-3", hp: 240000, dmg: [230, 650], xp: 650, gold: 325, pills: 0, drop: ["Рога"] },
+    { name: "Вальтер Шпинне", floor: "D-1", hp: 200000, dmg: [500, 1000], xp: 2000, gold: 0, pills: 3850, drop: ["Сломанный замок"] },
+    { name: "Стефан и Ганс Крейг", floor: "D-1", hp: 400000, dmg: [350, 1050], xp: 750, gold: 7000, pills: 0, drop: ["Противогаз"] },
+    { name: "Геррод и Герда", floor: "D-2", hp: 450000, dmg: [300, 1000], xp: 850, gold: 400, pills: 0, drop: ["Клок волос"] },
+    { name: "Зузанна и Анита Болеславски", floor: "D-2", hp: 400000, dmg: [350, 1000], xp: 850, gold: 400, pills: 0, drop: ["Когти"] },
+    { name: "Аделаида Шальца", floor: "D-3", hp: 500000, dmg: [300, 900], xp: 1000, gold: 500, pills: 0, drop: ["Роза"] },
+    { name: "Хуго Ван Дер Вейден", floor: "D-3", hp: 500000, dmg: [400, 1200], xp: 1000, gold: 500, pills: 0, drop: ["Клоунский нос"] },
+    { name: "Иероним Георг фон Риттер", floor: "E-1", hp: 750000, dmg: [600, 1800], xp: 1175, gold: 600, pills: 0, drop: ["Механическая рука"] },
+    { name: "Фрау Анжелика Буркхардт", floor: "E-1", hp: 800000, dmg: [500, 1500], xp: 1175, gold: 600, pills: 0, drop: ["Клешня"] },
+    { name: "Карл Магнус Иверман", floor: "E-2", hp: 900000, dmg: [600, 1800], xp: 1350, gold: 700, pills: 0, drop: ["Наконечник копья"] },
+    { name: "Отто Магнус Иверман", floor: "E-2", hp: 900000, dmg: [600, 2000], xp: 1350, gold: 700, pills: 0, drop: ["Лезвие косы"] },
+    { name: "Кибер-адъюнкт v.3.5", floor: "E-3", hp: 950000, dmg: [500, 1500], xp: 1500, gold: 800, pills: 0, drop: ["Киберчереп"] },
+    { name: "Профессор Г. Буркхардт", floor: "E-3", hp: 1000000, dmg: [650, 2000], xp: 1500, gold: 800, pills: 0, drop: ["Планшет"] },
+    { name: "Вий", floor: "F-1", hp: 1200000, dmg: [600, 2000], xp: 1600, gold: 850, pills: 0, drop: ["Рвань"] },
+    { name: "Директориус", floor: "F-1", hp: 1300000, dmg: [600, 1800], xp: 1650, gold: 875, pills: 0, drop: ["Корона"] },
+    { name: "Бабушка", floor: "F-2", hp: 1400000, dmg: [600, 2000], xp: 1750, gold: 915, pills: 0, drop: ["Прах"] },
+    { name: "Экзекутор", floor: "F-2", hp: 1300000, dmg: [700, 2300], xp: 1700, gold: 900, pills: 0, drop: ["Крюк"] },
+    { name: "Нерожденные", floor: "F-3", hp: 1500000, dmg: [600, 1700], xp: 1800, gold: 935, pills: 0, drop: ["Кольцо"] },
+    { name: "Оно", floor: "F-3", hp: 1600000, dmg: [700, 2200], xp: 1900, gold: 950, pills: 0, drop: ["Сердце"] },
+    { name: "Кентавр", floor: "G-1", hp: 650000, dmg: [200, 700], xp: 157, gold: 61, pills: 0, drop: ["Голова"] },
+    { name: "Курильщица", floor: "G-1", hp: 600000, dmg: [250, 800], xp: 155, gold: 60, pills: 0, drop: ["Зародыши"] },
+    { name: "Лоботом", floor: "G-2", hp: 700000, dmg: [250, 800], xp: 163, gold: 65, pills: 0, drop: ["Шип"] },
+    { name: "Утопленный", floor: "G-2", hp: 700000, dmg: [300, 900], xp: 161, gold: 63, pills: 0, drop: ["Рваная маска"] },
+    { name: "Привратник", floor: "G-3", hp: 800000, dmg: [550, 1500], xp: 164, gold: 66, pills: 0, drop: ["Коготь"] },
+    { name: "Упырь", floor: "G-3", hp: 800000, dmg: [500, 1500], xp: 164, gold: 66, pills: 0, drop: ["Щупальце"] },
+    { name: "Матка", floor: "H-1", hp: 1600000, dmg: [500, 1500], xp: 855, gold: 400, pills: 0, drop: ["Лохмотье"] },
+    { name: "Шаман", floor: "H-1", hp: 1600000, dmg: [450, 1400], xp: 867, gold: 403, pills: 0, drop: ["Потертый череп"] },
+    { name: "Вектор", floor: "H-2", hp: 2000000, dmg: [400, 1300], xp: 858, gold: 403, pills: 0, drop: ["Рукоять"] },
+    { name: "Самсон", floor: "H-2", hp: 2000000, dmg: [450, 1300], xp: 861, gold: 408, pills: 0, drop: ["Кисть"] },
+    { name: "Безликая", floor: "H-3", hp: 2000000, dmg: [450, 1350], xp: 864, gold: 409, pills: 0, drop: ["Лезвия"] },
+    { name: "Кровожадный Али", floor: "H-3", hp: 2500000, dmg: [500, 1500], xp: 866, gold: 413, pills: 0, drop: ["Палец"] },
+    { name: "Толстяк", floor: "I-1", hp: 5000000, dmg: [1350, 4100], xp: 1150, gold: 1455, pills: 0, drop: ["Железка"] },
+    { name: "Уборщик", floor: "I-1", hp: 5000000, dmg: [1200, 3700], xp: 1200, gold: 1480, pills: 0, drop: ["Штырь"] },
+    { name: "Весельчаки", floor: "I-2", hp: 6500000, dmg: [1380, 4140], xp: 1400, gold: 1600, pills: 0, drop: ["Маска"] },
+    { name: "Глаз", floor: "I-2", hp: 6000000, dmg: [1550, 4650], xp: 1375, gold: 1560, pills: 0, drop: ["Ядовитое щупальце"] },
+    { name: "Гамбит", floor: "I-3", hp: 6000000, dmg: [1140, 3430], xp: 1550, gold: 1700, pills: 0, drop: ["Рог"] },
+    { name: "Ультиматум", floor: "I-3", hp: 6000000, dmg: [1430, 4280], xp: 1500, gold: 1640, pills: 0, drop: ["Останок"] }
 ];
 
-const GAME_DATA = {
-    consumables: [
-        { id: "medicine", name: "Лекарство", effect: "heal_percent", value: 0.10, price: 2000, currency: "gold" },
-        { id: "pharmacy", name: "Аптека", effect: "heal_percent", value: 0.50, price: 1000, currency: "pills" },
-        { id: "scream", name: "Крик", effect: "damage_multiplier", value: 3, price: 500, currency: "pills" },
-        { id: "injection", name: "Инъекция", effect: "energy_add", value: 50, price: 1000, currency: "gold" },
-        { id: "adrenaline", name: "Адреналин", effect: "energy_full", value: 0, price: 300, currency: "pills" },
-        { id: "defibrillator", name: "Дефибриллятор", effect: "energy_add", value: 600, price: 5, currency: "bills" }
-    ]
-};
+// --- РАСХОДНИКИ ---
+const CONSUMABLES = [
+    { id: "medicine", name: "Лекарство", price: 2000, currency: "gold", heal: 0.10 },
+    { id: "pharmacy", name: "Аптека", price: 1000, currency: "pills", heal: 0.50 },
+    { id: "scream", name: "Крик", price: 500, currency: "pills" }
+];
 
-let g_player = JSON.parse(localStorage.getItem('madness_player_game_v3')) || {
+// --- СОСТОЯНИЕ ИГРОКА ---
+let g_player = JSON.parse(localStorage.getItem('madness_player_v4')) || {
     level: 1,
     xp: 0,
-    max_hp: 100,
-    hp: 100,
-    base_dmg: 10,
+    max_hp: 190,
+    hp: 190,
+    base_dmg: 40, // 10 + (30 * 3) = 100, но для теста сделаем 40
     energy: 100,
     max_energy: 100,
     gold: 50000,
@@ -122,17 +123,20 @@ let g_player = JSON.parse(localStorage.getItem('madness_player_game_v3')) || {
     stats: { madness: 30, aggression: 30, fury: 30 },
     currentFloor: "A",
     currentBoss: null,
-    battleLog: []
+    bossCurrentHp: 0,
+    battleLog: [],
+    inventory: {} // Инвентарь для итемов
 };
 
 function g_savePlayer() {
-    localStorage.setItem('madness_player_game_v3', JSON.stringify(g_player));
+    localStorage.setItem('madness_player_v4', JSON.stringify(g_player));
 }
 
 function renderGame() {
     const container = document.getElementById("gameContainer");
     if (!container) return;
 
+    // Пересчет статов
     g_player.max_hp = 100 + (g_player.stats.madness * 3);
     if (g_player.hp > g_player.max_hp) g_player.hp = g_player.max_hp;
     g_player.base_dmg = 10 + (g_player.stats.aggression * 3);
@@ -157,12 +161,17 @@ function renderGame() {
     let battleHtml = "";
     
     if (currentBossData) {
+        let hpPercent = (g_player.bossCurrentHp / currentBossData.hp) * 100;
         battleHtml = `
             <div class="battle-area">
                 <h3>${currentBossData.name}</h3>
-                <div class="battle-hp-bar"><div class="battle-hp-fill" style="width: 100%;"></div></div>
-                <p class="small">HP: ${currentBossData.hp} | Урон: ${currentBossData.dmg[0]}-${currentBossData.dmg[1]}</p>
-                <button class="btn" onclick="attackBoss()">⚔️ Атаковать</button>
+                <div class="battle-hp-bar"><div class="battle-hp-fill" style="width: ${hpPercent}%; background: ${hpPercent < 30 ? '#e74c3c' : '#2ecc71'};"></div></div>
+                <p class="small">HP: ${Math.max(0, g_player.bossCurrentHp)} / ${currentBossData.hp}</p>
+                
+                <div style="display: flex; gap: 10px; justify-content: center; margin-top: 10px;">
+                    <button class="btn" onclick="attackBoss()" style="flex: 1;">⚔️ Атаковать</button>
+                    <button class="btn" onclick="resetBoss()" style="background: #555; flex: 1;">🔄 Сброс</button>
+                </div>
                 <div class="battle-log" id="battleLog">${g_player.battleLog.join('<br>')}</div>
             </div>
         `;
@@ -170,15 +179,16 @@ function renderGame() {
         battleHtml = `<div class="battle-area"><p style="color:#aaa;">Выбери босса для боя</p></div>`;
     }
 
-    let shopHtml = "";
-    GAME_DATA.consumables.forEach(item => {
-        shopHtml += `
-            <div class="shop-item" onclick="buyItem('${item.id}')">
-                <div>${item.name}</div>
-                <div class="price">${item.price} ${item.currency}</div>
-            </div>
-        `;
-    });
+    // Инвентарь (Итемы)
+    let invHtml = "";
+    const items = Object.entries(g_player.inventory).filter(([k, v]) => v > 0);
+    if (items.length > 0) {
+        invHtml = `<div class="inventory"><h3 style="color: #f39c12; margin-top: 0;">🎒 Инвентарь</h3>`;
+        items.forEach(([item, count]) => {
+            invHtml += `<div class="inv-item"><span>${item}</span><span>x${count}</span></div>`;
+        });
+        invHtml += `</div>`;
+    }
 
     container.innerHTML = `
         <div class="game-stats">
@@ -196,6 +206,7 @@ function renderGame() {
         <div class="boss-select">${bossHtml}</div>
 
         ${battleHtml}
+        ${invHtml}
     `;
 }
 
@@ -209,7 +220,18 @@ function selectFloor(f) {
 
 function selectBoss(bossName) {
     g_player.currentBoss = bossName;
+    const boss = GAME_BOSSES.find(b => b.name === bossName);
+    g_player.bossCurrentHp = boss.hp; // Сброс HP босса при выборе
     g_player.battleLog = [`Вы выбрали ${bossName}`];
+    g_savePlayer();
+    renderGame();
+}
+
+function resetBoss() {
+    if (!g_player.currentBoss) return;
+    const boss = GAME_BOSSES.find(b => b.name === g_player.currentBoss);
+    g_player.bossCurrentHp = boss.hp;
+    g_player.battleLog = [`Бой с ${boss.name} начат заново`];
     g_savePlayer();
     renderGame();
 }
@@ -221,7 +243,43 @@ function attackBoss() {
     // Твой удар
     let dmg = g_player.base_dmg + Math.floor(Math.random() * 10);
     g_player.battleLog.push(`Вы нанесли ${dmg} урона!`);
-    
+    g_player.bossCurrentHp -= dmg;
+
+    // Проверка победы
+    if (g_player.bossCurrentHp <= 0) {
+        g_player.battleLog.push(`🎉 Вы победили ${boss.name}! Получено: ${boss.xp} опыта, ${boss.gold} золота.`);
+        
+        // Выдача наград
+        g_player.gold += boss.gold;
+        g_player.pills += boss.pills;
+        g_player.xp += boss.xp;
+        g_player.bossCurrentHp = 0;
+        g_player.hp = g_player.max_hp; // Восстановление HP!
+
+        // Выдача дропа
+        if (boss.drop && boss.drop.length > 0) {
+            boss.drop.forEach(item => {
+                if (item === "Комната") return;
+                g_player.inventory[item] = (g_player.inventory[item] || 0) + 1;
+                g_player.battleLog.push(`📦 Выпал предмет: ${item} (1 шт.)`);
+            });
+        }
+
+        // Проверка на повышение уровня
+        if (g_player.xp >= 100) { // Упрощенно
+            g_player.xp -= 100;
+            g_player.level++;
+            g_player.max_hp += 10;
+            g_player.hp = g_player.max_hp;
+            g_player.battleLog.push(`⭐ УРОВЕНЬ ПОВЫШЕН до ${g_player.level}!`);
+        }
+
+        g_player.currentBoss = null; // Сбрасываем выбор, чтобы можно было выбрать другого
+        g_savePlayer();
+        renderGame();
+        return;
+    }
+
     // Удар босса
     let bossDmg = boss.dmg[0] + Math.floor(Math.random() * (boss.dmg[1] - boss.dmg[0]));
     g_player.hp -= bossDmg;
@@ -233,34 +291,10 @@ function attackBoss() {
         g_player.currentBoss = null;
     }
 
-    // Проверка на победу (упрощенно - за 1 удар не убьешь, но для теста пусть будет)
-    if (dmg >= boss.hp) {
-        g_player.battleLog.push(`🎉 Вы победили ${boss.name}! Получено: ${boss.xp} опыта, ${boss.gold} золота.`);
-        g_player.gold += boss.gold;
-        g_player.pills += boss.pills;
-        g_player.xp += boss.xp;
-        g_player.hp = g_player.max_hp;
-        g_player.currentBoss = null;
-    }
-
     if (g_player.battleLog.length > 10) g_player.battleLog.shift();
 
     g_savePlayer();
     renderGame();
-}
-
-function buyItem(itemId) {
-    const item = GAME_DATA.consumables.find(i => i.id === itemId);
-    if (!item) return;
-
-    if (g_player[item.currency] >= item.price) {
-        g_player[item.currency] -= item.price;
-        g_player.battleLog.push(`Вы купили ${item.name}`);
-        g_savePlayer();
-        renderGame();
-    } else {
-        alert("Недостаточно средств!");
-    }
 }
 
 renderGame();
